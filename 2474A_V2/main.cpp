@@ -1,6 +1,9 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 
+// Pneumatic piston on ThreeWire port A
+pros::adi::DigitalOut piston('A');
+
 // left motor group
 pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
 // right motor group
@@ -82,6 +85,8 @@ void initialize() {
     });
 }
 
+
+
 // input curve for throttle input during driver control
 lemlib::ExpoDriveCurve throttle_curve(3, // joystick deadband out of 127
                                      10, // minimum output where drivetrain will move out of 127
@@ -94,3 +99,8 @@ lemlib::ExpoDriveCurve steer_curve(3, // joystick deadband out of 127
                                   1.019 // expo curve gain
 );
 
+void autonomous() {
+    chassis.moveToPoint(0, 48, 2000);
+    chassis.waitUntil(24);             // Wait until 24 inches into the move
+    piston.set_value(true);            // Extend while still moving
+}
