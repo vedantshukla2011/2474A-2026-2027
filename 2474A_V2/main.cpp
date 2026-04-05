@@ -1,6 +1,12 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 
+// Pneumatic piston on ThreeWire port A
+pros::adi::DigitalOut piston('A');
+
+// Controller
+pros::Controller master(pros::E_CONTROLLER_MASTER);
+
 // left motor group
 pros::MotorGroup left_motor_group({-1, 2, -3}, pros::MotorGears::blue);
 // right motor group
@@ -13,6 +19,19 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               lemlib::Omniwheel::NEW_4, // using new 4" omnis
                               360, // drivetrain rpm is 360
                               2 // horizontal drift is 2 (for now)
+);
+
+
+// input curve for throttle input during driver control
+lemlib::ExpoDriveCurve throttle_curve(3, // joystick deadband out of 127
+                                     10, // minimum output where drivetrain will move out of 127
+                                     1.019 // expo curve gain
+);
+
+// input curve for steer input during driver control
+lemlib::ExpoDriveCurve steer_curve(3, // joystick deadband out of 127
+                                  10, // minimum output where drivetrain will move out of 127
+                                  1.019 // expo curve gain
 );
 
 // imu
@@ -62,7 +81,10 @@ lemlib::ControllerSettings angular_controller(2, // proportional gain (kP)
 lemlib::Chassis chassis(drivetrain, // drivetrain settings
                         lateral_controller, // lateral PID settings
                         angular_controller, // angular PID settings
-                        sensors // odometry sensors
+                        sensors, // odometry sensors
+                        &throttle_curve, 
+                        &steer_curve
+
 );
 
 // initialize function. Runs on program startup
@@ -82,15 +104,12 @@ void initialize() {
     });
 }
 
-// input curve for throttle input during driver control
-lemlib::ExpoDriveCurve throttle_curve(3, // joystick deadband out of 127
-                                     10, // minimum output where drivetrain will move out of 127
-                                     1.019 // expo curve gain
-);
 
-// input curve for steer input during driver control
-lemlib::ExpoDriveCurve steer_curve(3, // joystick deadband out of 127
-                                  10, // minimum output where drivetrain will move out of 127
-                                  1.019 // expo curve gain
-);
 
+
+
+void autonomous() {
+    chassis.moveToPoint(0, 48, 2000);
+    chassis.waitUntil(24);             // Wait until 24 inches into the move
+    piston.set_value(true);            // Extend while still moving
+}
